@@ -43,7 +43,7 @@ function downloadVideo(url, outPath) {
 
     const args = [
       clean,
-      '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+      '-f', 'bestvideo[vcodec!^=none][ext=mp4]+bestaudio/bestvideo[vcodec!^=none]+bestaudio/best[ext=mp4]/best',
       '--merge-output-format', 'mp4',
       '-o', outPath,
       '--no-playlist',
