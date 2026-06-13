@@ -80,43 +80,33 @@ function downloadVideo(url, outPath) {
 
 function mergeVideos(files, outPath) {
   return new Promise((resolve, reject) => {
-    const listPath = outPath.replace('output.mp4', 'list.txt');
-    fs.writeFileSync(listPath, files.map(f => `file '${f}'`).join('\n'));
+    // Luôn re-encode để đảm bảo các video khác resolution/fps không bị vỡ hình
+    console.log('Re-encoding & merging', files.length, 'videos...');
+    const n = files.length;
+    const inputs = files.flatMap(f => ['-i', f]);
+    // Scale về cùng kích thước video đầu tiên, chuẩn hóa fps và audio
+    const vf = files.map((_, i) =>
+      `[${i}:v]scale=iw:ih:force_original_aspect_ratio=decrease,scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=30,setsar=1[v${i}];[${i}:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a${i}]`
+    ).join(';');
+    const concat = files.map((_, i) => `[v${i}][a${i}]`).join('') + `concat=n=${n}:v=1:a=1[vout][aout]`;
 
-    // Thử copy stream trước (nhanh)
     const proc = spawn(ffmpegStatic, [
-      '-f', 'concat', '-safe', '0',
-      '-i', listPath, '-c', 'copy', '-y', outPath
+      ...inputs,
+      '-filter_complex', `${vf};${concat}`,
+      '-map', '[vout]', '-map', '[aout]',
+      '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+      '-c:a', 'aac', '-b:a', '128k',
+      '-movflags', '+faststart',
+      '-y', outPath
     ]);
     let stderr = '';
-    proc.stderr.on('data', d => stderr += d.toString());
+    proc.stderr.on('data', d => {
+      stderr += d.toString();
+      process.stderr.write(d);
+    });
     proc.on('close', code => {
-      if (code === 0 && fs.existsSync(outPath) && fs.statSync(outPath).size > 10000) {
-        return resolve();
-      }
-      // Fallback: re-encode
-      console.log('Concat copy failed, re-encoding...');
-      const n = files.length;
-      const inputs = files.flatMap(f => ['-i', f]);
-      const vf = files.map((_, i) =>
-        `[${i}:v]scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1[v${i}];[${i}:a]aresample=44100[a${i}]`
-      ).join(';');
-      const concat = files.map((_, i) => `[v${i}][a${i}]`).join('') + `concat=n=${n}:v=1:a=1[vout][aout]`;
-
-      const proc2 = spawn(ffmpegStatic, [
-        ...inputs,
-        '-filter_complex', `${vf};${concat}`,
-        '-map', '[vout]', '-map', '[aout]',
-        '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-        '-c:a', 'aac', '-b:a', '128k',
-        '-y', outPath
-      ]);
-      let stderr2 = '';
-      proc2.stderr.on('data', d => stderr2 += d.toString());
-      proc2.on('close', code2 => {
-        if (code2 === 0 && fs.existsSync(outPath)) resolve();
-        else reject(new Error('Ghép thất bại: ' + stderr2.slice(-300)));
-      });
+      if (code === 0 && fs.existsSync(outPath) && fs.statSync(outPath).size > 10000) resolve();
+      else reject(new Error('Ghép thất bại: ' + stderr.slice(-400)));
     });
   });
 }
