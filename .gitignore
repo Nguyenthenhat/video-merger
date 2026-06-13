@@ -1,0 +1,5 @@
+node_modules/
+tmp/
+yt-dlp
+yt-dlp.exe
+*.mp4
