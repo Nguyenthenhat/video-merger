@@ -47,8 +47,8 @@ function downloadVideo(url, outPath) {
       '--merge-output-format', 'mp4',
       '-o', outPath,
       '--no-playlist',
-      '--socket-timeout', '60',
-      '--retries', '3',
+      '--socket-timeout', '20',
+      '--retries', '1',
       '--no-check-certificates',
       '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     ];
@@ -118,6 +118,11 @@ app.post('/merge', async (req, res) => {
   const validUrls = (urls || []).map(u => String(u).trim()).filter(Boolean);
   if (!validUrls.length || validUrls.length > 3)
     return res.status(400).json({ error: 'Cần 1–3 link video' });
+
+  // Facebook chặn tải từ server IP (data center). Chỉ hỗ trợ TikTok.
+  const fbUrls = validUrls.filter(u => u.includes('facebook.com') || u.includes('fb.watch'));
+  if (fbUrls.length > 0)
+    return res.status(400).json({ error: 'Facebook không cho phép tải video từ server. Chỉ hỗ trợ TikTok — hãy thay bằng link TikTok.' });
 
   const jobId = uuidv4().slice(0, 8);
   const jobDir = path.join(TMP, jobId);
