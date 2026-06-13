@@ -36,13 +36,12 @@
 <body>
 <div class="card">
   <h1>Video Merger <span class="badge">Beta</span></h1>
-  <div class="sub">Dán link TikTok — tự động tải và ghép nối đuôi</div>
-  <div style="font-size:12px;color:#444;margin-top:4px;margin-bottom:0">⚠ Facebook không hỗ trợ từ server (IP bị chặn) — chỉ dùng TikTok</div>
+  <div class="sub">Dán link Facebook hoặc TikTok — tự động tải và ghép nối đuôi</div>
 
   <div class="label">Link video (tối đa 3)</div>
   <div id="inputs">
     <div class="input-row">
-      <input type="url" placeholder="https://www.tiktok.com/@..." />
+      <input type="url" placeholder="https://www.facebook.com/reel/..." />
     </div>
     <div class="input-row" style="margin-top:8px">
       <input type="url" placeholder="https://www.tiktok.com/@..." />
@@ -110,7 +109,7 @@ async function startMerge() {
     clearInterval(stepInterval);
 
     if (!res.ok) {
-      const { error } = await res.json().catch(() => ({ error: 'Lỗi không xác định' }));
+      const { error } = await res.json().catch(() => ({ error: 'Server mất kết nối — video quá dài hoặc server đang bận, hãy thử lại.' }));
       throw new Error(error);
     }
 

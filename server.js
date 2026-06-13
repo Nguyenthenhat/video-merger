@@ -94,7 +94,7 @@ function mergeVideos(files, outPath) {
       ...inputs,
       '-filter_complex', `${vf};${concat}`,
       '-map', '[vout]', '-map', '[aout]',
-      '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+      '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '26',
       '-c:a', 'aac', '-b:a', '128k',
       '-movflags', '+faststart',
       '-y', outPath
@@ -119,10 +119,6 @@ app.post('/merge', async (req, res) => {
   if (!validUrls.length || validUrls.length > 3)
     return res.status(400).json({ error: 'Cần 1–3 link video' });
 
-  // Facebook chặn tải từ server IP (data center). Chỉ hỗ trợ TikTok.
-  const fbUrls = validUrls.filter(u => u.includes('facebook.com') || u.includes('fb.watch'));
-  if (fbUrls.length > 0)
-    return res.status(400).json({ error: 'Facebook không cho phép tải video từ server. Chỉ hỗ trợ TikTok — hãy thay bằng link TikTok.' });
 
   const jobId = uuidv4().slice(0, 8);
   const jobDir = path.join(TMP, jobId);
